@@ -2,3 +2,13 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# R Project files
+.Rprofile
+swissAnki.Rproj
+
+# R Environment files
+renv.lock
+
+# macOS files
+.DS_Store
