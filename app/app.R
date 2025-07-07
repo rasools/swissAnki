@@ -11,7 +11,7 @@ library(shinyjs)
 
 # Setting up Python environment
 Sys.setenv(RETICULATE_PYTHON = "/Users/rasools/miniconda3/envs/svenski4serve/bin/python")
-spacy_initialize(model = "sv_core_news_md")
+spacy_initialize(model = "de_core_news_md")
 
 server <- function(input, output, session) {
   values <- reactiveValues(
@@ -34,7 +34,7 @@ server <- function(input, output, session) {
     gptCost = 0,
     dalleCost = 0,
     ttsCost = 0,
-    appVersion = "svenski.v.14.2"
+    appVersion = "swissAnki.v.1.0"
   )
   
   # Function to query ChatGPT API
@@ -154,15 +154,15 @@ server <- function(input, output, session) {
   
   observeEvent(input$generateImage, {
     req(values$results)
-
+    
     original_prompt <- values$results$Details[4]
     original_part_of_speech <- values$results$Details[3]
     
     # Ask ChatGPT to make a better DALL-E prompt
     chat_prompt <- paste0(
-      "Skapa ett kort visuell beskrivning för bildgenerering baserat på denna svenska mening eller detta ord: ",
-      original_prompt, " - vilket är en svenska ", original_part_of_speech,
-      ". Fokusera på huvudsubstantivet eller handlingen, och beskriv kort en scen utan översättning eller abstrakta begrepp."
+      "Erstelle eine kurze visuelle Beschreibung für die Bildgenerierung basierend auf diesem Schweizerdeutschen Satz oder Wort: ",
+      original_prompt, " - welches ein Schweizerdeutsches ", original_part_of_speech,
+      " ist. Konzentriere dich auf das Hauptnomen oder die Handlung und beschreibe kurz eine Szene ohne Übersetzung oder abstrakte Konzepte."
     )
     print(paste("Prompt for ChatGPT:", chat_prompt))
     
@@ -207,146 +207,146 @@ server <- function(input, output, session) {
   })
   
   observeEvent(input$readExamples, {
-  req(values$results)
-  
-  audio_files <- lapply(seq_len(nrow(values$results)), function(i) {
-    if (grepl("example", values$results$Property[i], ignore.case = TRUE)) {
-      text_to_read <- sub("\\s*\\(.*?\\)\\s*$", "", values$results$Details[i])
-      print(paste("Text to read:", text_to_read))
-      openai_tts(text_to_read, values$ttsModel, api_key = values$apiKey)
-    } else {
-      NULL
-    }
+    req(values$results)
+    
+    audio_files <- lapply(seq_len(nrow(values$results)), function(i) {
+      if (grepl("example", values$results$Property[i], ignore.case = TRUE)) {
+        text_to_read <- sub("\\s*\\(.*?\\)\\s*$", "", values$results$Details[i])
+        print(paste("Text to read:", text_to_read))
+        openai_tts(text_to_read, values$ttsModel, api_key = values$apiKey)
+      } else {
+        NULL
+      }
+    })
+    
+    values$audio <- audio_files
+    
+    values$results$Audio <- sapply(seq_len(length(audio_files)), function(i) {
+      if (!is.null(audio_files[[i]])) {
+        audio_content <- audio_files[[i]]
+        audio_src <- base64enc::base64encode(audio_content)
+        as.character(tags$div(
+          tags$audio(src = paste0("data:audio/mp3;base64,", audio_src), type = "audio/mp3", controls = TRUE)
+        ))
+      } else {
+        ""
+      }
+    })
+    
+    showNotification("Audio files for rows with 'example' have been generated.", type = "message")
   })
   
-  values$audio <- audio_files
-  
-  values$results$Audio <- sapply(seq_len(length(audio_files)), function(i) {
-    if (!is.null(audio_files[[i]])) {
-      audio_content <- audio_files[[i]]
-      audio_src <- base64enc::base64encode(audio_content)
-      as.character(tags$div(
-        tags$audio(src = paste0("data:audio/mp3;base64,", audio_src), type = "audio/mp3", controls = TRUE)
-      ))
-    } else {
-      ""
-    }
-  })
-  
-  showNotification("Audio files for rows with 'example' have been generated.", type = "message")
-})
-  
-output$resultsTable <- renderDataTable({
-  req(values$results)
-  
-  df <- values$results
-  
-  # Add a Delete button for each row
-  df$Delete <- sprintf(
-    '<button class="btn btn-danger btn-sm delete-btn" data-row="%s">Delete</button>',
-    seq_len(nrow(df))
-  )
-  
-  datatable(
-    df,
-    escape = FALSE,
-    extensions = 'Buttons',
-    editable = list(
-      target = 'cell',
-      disable = list(columns = which(colnames(df) == "Delete"))
-    ),
-    options = list(
-      dom = 't',
-      paging = FALSE,
-      info = FALSE,
-      ordering = FALSE,
-      columnDefs = list(
-        list(targets = '_all', className = 'dt-center')
-      )
-    ),
-    callback = JS("
+  output$resultsTable <- renderDataTable({
+    req(values$results)
+    
+    df <- values$results
+    
+    # Add a Delete button for each row
+    df$Delete <- sprintf(
+      '<button class="btn btn-danger btn-sm delete-btn" data-row="%s">Delete</button>',
+      seq_len(nrow(df))
+    )
+    
+    datatable(
+      df,
+      escape = FALSE,
+      extensions = 'Buttons',
+      editable = list(
+        target = 'cell',
+        disable = list(columns = which(colnames(df) == "Delete"))
+      ),
+      options = list(
+        dom = 't',
+        paging = FALSE,
+        info = FALSE,
+        ordering = FALSE,
+        columnDefs = list(
+          list(targets = '_all', className = 'dt-center')
+        )
+      ),
+      callback = JS("
     table.on('click', '.delete-btn', function() {
       var row = $(this).data('row');
       Shiny.setInputValue('delete_row', row, {priority: 'event'});
     });
   ")
-  )
-})
-
-observeEvent(input$delete_row, {
-  row_index <- as.numeric(input$delete_row)
-  if (!is.null(row_index) && row_index >= 1 && row_index <= nrow(values$results)) {
-    values$results <- values$results[-row_index, ]
-  }
-})
+    )
+  })
   
-observeEvent(input$resultsTable_cell_edit, {
-  info <- input$resultsTable_cell_edit
-  str(info)  # Optional: view edit info in R console
-  i <- info$row
-  j <- info$col
-  v <- info$value
-  
-  values$results[i, j] <<- isolate(coerceValue(v, values$results[i, j]))
-})
-  
-performAnalysis <- function(txt, modelName, apiKey) {
-  values$image <- NULL
-  values$audio <- list()
-  values$pic_url <- NULL
-  consolidatedtxt <- entity_consolidate(spacy_parse(txt, lemma = FALSE, entity = TRUE, nounphrase = TRUE))
-  
-  # Split the input text into words
-  words <- unlist(strsplit(txt, "\\s+"))
-  
-  # Logic for two-word inputs
-  if (length(words) == 2) {
-    pos_tags <- consolidatedtxt$pos[1:2]
-    if ("VERB" %in% pos_tags) {
-      pos <- "VERB"
-    } else {
-      pos <- "phrase"
+  observeEvent(input$delete_row, {
+    row_index <- as.numeric(input$delete_row)
+    if (!is.null(row_index) && row_index >= 1 && row_index <= nrow(values$results)) {
+      values$results <- values$results[-row_index, ]
     }
-    prompt <- createPrompt(txt, pos, consolidatedtxt)
-    
-  } else if (length(words) > 2) {
-    # Treat multi-word inputs as a phrase
-    pos <- "phrase"
-    prompt <- createPrompt(txt, pos, consolidatedtxt)
-    
-  } else {
-    # Original logic for single-word inputs
-    prompt <- createPrompt(consolidatedtxt$token[1], consolidatedtxt$pos[1], consolidatedtxt)
-  }
+  })
   
-  # Make API request
-  response <- chatGPT(prompt, modelName = modelName, apiKey = apiKey)
-  if (is.null(response)) {
-    showNotification("Failed to get analysis results. Please try again.", type = "error")
-    return()
-  }
-  values$results <- parseResults(response)
-  
-  # Additional checks for single-word inputs
-  if (length(words) == 1) {
-    res <- parseResults(response)
-    pos_type <- consolidatedtxt$pos[1]
+  observeEvent(input$resultsTable_cell_edit, {
+    info <- input$resultsTable_cell_edit
+    str(info)  # Optional: view edit info in R console
+    i <- info$row
+    j <- info$col
+    v <- info$value
     
-    if (pos_type == "VERB" || pos_type == "NOUN" || pos_type == "ADJ" || pos_type == "PRON") {
-      prompt <- createPrompt(res$Details[4], pos_type, consolidatedtxt)
-      response <- chatGPT(prompt, modelName = modelName, apiKey = apiKey)
-      if (is.null(response)) {
-        showNotification("Failed to get analysis results. Please try again.", type = "error")
-        return()
+    values$results[i, j] <<- isolate(coerceValue(v, values$results[i, j]))
+  })
+  
+  performAnalysis <- function(txt, modelName, apiKey) {
+    values$image <- NULL
+    values$audio <- list()
+    values$pic_url <- NULL
+    consolidatedtxt <- entity_consolidate(spacy_parse(txt, lemma = FALSE, entity = TRUE, nounphrase = TRUE))
+    
+    # Split the input text into words
+    words <- unlist(strsplit(txt, "\\s+"))
+    
+    # Logic for two-word inputs
+    if (length(words) == 2) {
+      pos_tags <- consolidatedtxt$pos[1:2]
+      if ("VERB" %in% pos_tags) {
+        pos <- "VERB"
+      } else {
+        pos <- "phrase"
       }
-      values$results <- parseResults(response)
+      prompt <- createPrompt(txt, pos, consolidatedtxt)
+      
+    } else if (length(words) > 2) {
+      # Treat multi-word inputs as a phrase
+      pos <- "phrase"
+      prompt <- createPrompt(txt, pos, consolidatedtxt)
+      
+    } else {
+      # Original logic for single-word inputs
+      prompt <- createPrompt(consolidatedtxt$token[1], consolidatedtxt$pos[1], consolidatedtxt)
     }
+    
+    # Make API request
+    response <- chatGPT(prompt, modelName = modelName, apiKey = apiKey)
+    if (is.null(response)) {
+      showNotification("Failed to get analysis results. Please try again.", type = "error")
+      return()
+    }
+    values$results <- parseResults(response)
+    
+    # Additional checks for single-word inputs
+    if (length(words) == 1) {
+      res <- parseResults(response)
+      pos_type <- consolidatedtxt$pos[1]
+      
+      if (pos_type == "VERB" || pos_type == "NOUN" || pos_type == "ADJ" || pos_type == "PRON") {
+        prompt <- createPrompt(res$Details[4], pos_type, consolidatedtxt)
+        response <- chatGPT(prompt, modelName = modelName, apiKey = apiKey)
+        if (is.null(response)) {
+          showNotification("Failed to get analysis results. Please try again.", type = "error")
+          return()
+        }
+        values$results <- parseResults(response)
+      }
+    }
+    
+    output$result <- NULL
+    print(prompt)
   }
   
-  output$result <- NULL
-  print(prompt)
-}
-
   
   createPrompt <- function(word, pos, consolidatedtxt) {
     path_template <- sprintf("temp_tables/%s.txt", tolower(pos))
@@ -358,12 +358,12 @@ performAnalysis <- function(txt, modelName, apiKey) {
         collapse = "\n"
       )
       paste(
-        word, sprintf("is a Swedish %s. Please fill in the blanks in the table format provided below:", tolower(pos)),
+        word, sprintf("ist ein Schweizerdeutsches %s. Bitte fülle die Lücken im folgenden Tabellenformat aus:", tolower(pos)),
         table_string, 
-        "The table should strictly follow the format 'Category | Details' as shown.",
-        "For example sentences, please provide complete sentences that are simple and useful in daily communications (beginner/intermediate level).",
-        "Each example sentence should contain at least 15 words, and the meaning in English should be enclosed in parentheses at the end of the sentence.",
-        "Format for examples: 'Presens example sentence | Sentence in Swedish (Meaning in English)'.",
+        "Die Tabelle sollte strikt dem Format 'Kategorie | Details' folgen.",
+        "Für Beispielsätze bitte vollständige Sätze angeben, die einfach und nützlich für die tägliche Kommunikation sind (Anfänger/Mittelstufe).",
+        "Jeder Beispielsatz sollte mindestens 15 Wörter enthalten, und die Bedeutung auf Englisch sollte am Ende des Satzes in Klammern stehen.",
+        "Format für Beispiele: 'Präsens Beispielsatz | Satz auf Schweizerdeutsch (Bedeutung auf Englisch)'.",
         sep = " "
       )
     } else {
@@ -371,30 +371,30 @@ performAnalysis <- function(txt, modelName, apiKey) {
     }
   }
   
-parseResults <- function(response) {
-  response <- trimws(response)
-  lines <- strsplit(response, "\n")[[1]]
-  lines <- lines[-1]
-  lines <- lines[-length(lines)]
-  if (lines[1] == "--- | ---") {
+  parseResults <- function(response) {
+    response <- trimws(response)
+    lines <- strsplit(response, "\n")[[1]]
     lines <- lines[-1]
+    lines <- lines[-length(lines)]
+    if (lines[1] == "--- | ---") {
+      lines <- lines[-1]
+    }
+    keys <- sub("\\|.*", "", lines)
+    values <- sub(".*\\| ", "", lines)
+    
+    df <- data.frame(Property = keys, Details = values, stringsAsFactors = FALSE)
+    
+    # Find first "example" row (case insensitive)
+    example_index <- which(grepl("example", df$Property, ignore.case = TRUE))[1]
+    insert_at <- if (!is.na(example_index)) example_index else (nrow(df) + 1)
+    
+    # Insert "My Notes" row
+    note_row <- data.frame(Property = "My Note", Details = "", stringsAsFactors = FALSE)
+    df <- rbind(df[1:(insert_at - 1), ], note_row, df[insert_at:nrow(df), ])
+    
+    rownames(df) <- NULL
+    return(df)
   }
-  keys <- sub("\\|.*", "", lines)
-  values <- sub(".*\\| ", "", lines)
-  
-  df <- data.frame(Property = keys, Details = values, stringsAsFactors = FALSE)
-  
-  # Find first "example" row (case insensitive)
-  example_index <- which(grepl("example", df$Property, ignore.case = TRUE))[1]
-  insert_at <- if (!is.na(example_index)) example_index else (nrow(df) + 1)
-  
-  # Insert "My Notes" row
-  note_row <- data.frame(Property = "My Note", Details = "", stringsAsFactors = FALSE)
-  df <- rbind(df[1:(insert_at - 1), ], note_row, df[insert_at:nrow(df), ])
-  
-  rownames(df) <- NULL
-  return(df)
-}
   
   
   output$image <- renderUI({
@@ -424,14 +424,14 @@ parseResults <- function(response) {
         tags$div(
           class = "card",
           style = "margin-top: 20px; padding: 15px; background-color: #ffffff; border-radius: 10px; box-shadow: 0 0 10px rgba(0,0,0,0.1);",
-          h4("Card Direction"),
-          tags$p("Choose how the flashcard should be created."),
+          h4("Kartenrichtung"),
+          tags$p("Wähle, wie die Karte erstellt werden soll."),
           selectInput("cardDirection", NULL,
-                      choices = c("Swedish to Farsi", "Farsi to Swedish"),
-                      selected = "Farsi to Swedish")
+                      choices = c("Schweizerdeutsch zu Englisch", "Englisch zu Schweizerdeutsch"),
+                      selected = "Englisch zu Schweizerdeutsch")
         ),
         
-        actionButton("createAnkiCard", "Create Anki Card", class = "btn btn-primary btn-lg", style = "width: 100%; margin-top: 20px; font-weight: bold; font-size: 1.5em;")
+        actionButton("createAnkiCard", "Anki-Karte erstellen", class = "btn btn-primary btn-lg", style = "width: 100%; margin-top: 20px; font-weight: bold; font-size: 1.5em;")
       )
     })
   })
@@ -468,13 +468,13 @@ parseResults <- function(response) {
     # Check if the audio column exists and contains data
     has_audio <- "Audio" %in% names(results) && any(results$Audio != "")
     
-    if (input$cardDirection == "Swedish to Farsi") {
+    if (input$cardDirection == "Schweizerdeutsch zu Englisch") {
       front_content <- results$Details[4]  # Swedish example sentence
     } else {
       front_content <- results$Details[2]  # Farsi meaning
     }
     
-    if (input$cardDirection == "Swedish to Farsi") {
+    if (input$cardDirection == "Schweizerdeutsch zu Englisch") {
       back_content <- paste0(
         if (!is.null(image)) {
           sprintf("<img src='data:image/jpeg;base64,%s' /><br>", image$data)
@@ -497,7 +497,7 @@ parseResults <- function(response) {
         )
       )
     } else {
-      # Farsi to Swedish — exclude the Farsi line (row 2)
+      # Englisch zu Schweizerdeutsch — exclude the Farsi line (row 2)
       back_content <- paste0(
         if (!is.null(image)) {
           sprintf("<img src='data:image/jpeg;base64,%s' /><br>", image$data)
@@ -527,10 +527,10 @@ parseResults <- function(response) {
       Back = back_content
     )
     
-    direction_tag <- if (direction == "Swedish to Farsi") {
-      "sv2fa"
+    direction_tag <- if (direction == "Schweizerdeutsch zu Englisch") {
+      "ch2en"
     } else {
-      "fa2sv"
+      "en2ch"
     }
     
     tags <- list(
@@ -704,18 +704,18 @@ ui <- fluidPage(
       margin-top: 20px;
     }
   "))),
-  titlePanel("Svenski: Din Anki-assistent för att Lära Dig Svenska! "),
+  titlePanel("SwissAnki: Dein Anki-Assistent für Schweizerdeutsch!"),
   sidebarLayout(
     sidebarPanel(
       class = "sidebar-panel",
-      textInput("textToTranslate", "First check translation (optional):", value = ""),
-      selectInput("sourceLang", "Source Language:", choices = c("sv", "en"), selected = "sv"),
-      selectInput("targetLang", "Target Language:", choices = c("sv", "en"), selected = "en"),
-      actionButton("translate", "Translate"),
+      textInput("textToTranslate", "Zuerst Übersetzung prüfen (optional):", value = ""),
+      selectInput("sourceLang", "Ausgangssprache:", choices = c("de", "en"), selected = "de"),
+      selectInput("targetLang", "Zielsprache:", choices = c("de", "en"), selected = "en"),
+      actionButton("translate", "Übersetzen"),
       textOutput("translationResult"),
       tags$hr(),
-      textInput("text", "Enter a Swedish word / phrase:", value = ""),
-      actionButton("submit", "Submit"),
+      textInput("text", "Schweizerdeutsches Wort / Phrase eingeben:", value = ""),
+      actionButton("submit", "Analysieren"),
       tags$div(
         style = "text-align: right; margin-top: 15px;",
         tags$a(

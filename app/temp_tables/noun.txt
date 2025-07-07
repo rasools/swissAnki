@@ -2,12 +2,13 @@ Category | Details
 Meaning in English |
 Meaning in Farsi |
 Part of Speech |
-Single obestämd from |
-Single bestämd from |
-Plural obestämd from |
-Plural bestämd form |
-Single obestämd from example sentence |
-Single bestämd from example sentence |
-Plural obestämd from example sentence |
-Plural bestämd form example sentence |
+Gender (der/die/das) |
+Singular form |
+Singular form with article |
+Plural form |
+Plural form with article |
+Example sentence (singular) |
+Example sentence (singular with article) |
+Example sentence (plural) |
+Example sentence (plural with article) |
 End |
