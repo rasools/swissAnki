@@ -8,7 +8,7 @@ Plural form |
 Comparative form |
 Superlative form |
 Opposite |
-Single from example sentence |
-Comparative form example sentence |
-Superlative form example sentence |
+Example sentence (basic form) |
+Example sentence (comparative) |
+Example sentence (superlative) |
 End |

@@ -2,14 +2,19 @@ Category | Details
 Meaning in English |
 Meaning in Farsi |
 Part of Speech |
-Infinitiv |
-Reflexive verb? |
-Presens |
-Preteritum |
-Supinum |
+Infinitive |
+Separable/Inseparable |
+Auxiliary verb (haben/sein) |
+Present tense (Präsens) |
+Past tense (Präteritum) |
+Perfect tense (Perfekt) |
+Future tense (Futur) |
+Imperative |
 Opposite |
-Common propositions |
-Presens example sentence |
-Preteritum example sentence |
-Supinum example sentence |
+Common prepositions |
+Example sentence (Present) |
+Example sentence (Past) |
+Example sentence (Perfect) |
+Example sentence (Future) |
+Example sentence (Imperative) |
 End |
