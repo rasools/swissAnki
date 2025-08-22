@@ -9,8 +9,9 @@ library(magick)
 library(shinythemes)
 library(shinyjs)
 
-# Setting up Python environment
+# Setting up Python environment 
 Sys.setenv(RETICULATE_PYTHON = "/Users/rasools/miniconda3/envs/svenski4serve/bin/python")
+reticulate::use_python("/Users/rasools/miniconda3/envs/svenski4serve/bin/python", required = TRUE)
 spacy_initialize(model = "de_core_news_md")
 
 server <- function(input, output, session) {
@@ -302,8 +303,18 @@ performAnalysis <- function(txt, modelName, apiKey) {
   # Logic for two-word inputs
   if (length(words) == 2) {
     pos_tags <- consolidatedtxt$pos[1:2]
+    tokens <- consolidatedtxt$token[1:2]
+    
+    # Check if it's an article + noun combination
+    articles <- c("der", "die", "das", "den", "dem", "des", "ein", "eine", "einen", "einem", "eines")
+    is_article_noun <- tolower(tokens[1]) %in% articles && pos_tags[2] == "NOUN"
+    
     if ("VERB" %in% pos_tags) {
       pos <- "VERB"
+    } else if (is_article_noun) {
+      pos <- "NOUN"
+      # Use the noun part for analysis
+      txt <- tokens[2]
     } else {
       pos <- "phrase"
     }
